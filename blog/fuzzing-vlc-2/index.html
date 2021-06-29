@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+    <!-- Enable responsiveness on mobile devices-->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Permissions-Policy" content="interest-cohort=()"/>
+
+    <title>
+  Fuzzing libVLC - De-multiplexer
+</title>
+
+    
+    <meta name="description" content="So, I have been working on writing a fuzz target for the demux API for the past
+two weeks and I have reached a point where it has a good code coverage
+and has already found some few shallow bugs. 
+Here are some of the stacktraces libfuzzer spit out and all of them were fixed
+rather promptly.
+">
+
+    
+        <meta name="keywords" content="libfuzzer, libvlc, vlc, fuzzing, gsoc-2017, gsoc">
+    
+
+
+    
+        <meta name="author" content="Shaleen Jain">
+
+        <link rel="author" href="https:&#x2F;&#x2F;twitter.com&#x2F;shalzzj">
+        
+            <link href="https:&#x2F;&#x2F;shaleenjain.com&#x2F;blog&#x2F;fuzzing-vlc-2&#x2F;" rel="canonical">
+        
+         <link rel="alternate" type="application/atom+xml" title="RSS" href="https://shaleenjain.com/atom.xml">
+    
+
+    
+    
+        <meta name="twitter:site" content="@shalzzj">
+        <meta name="twitter:creator" content="@shalzzj">
+
+        <meta property="og:type" content="article">
+        
+            <meta property="og:url" content="https:&#x2F;&#x2F;shaleenjain.com&#x2F;blog&#x2F;fuzzing-vlc-2&#x2F;">
+        
+
+        
+        <meta property="og:description" content="Personal and technical musings">
+        
+    
+    <meta name="twitter:title" content="Fuzzing libVLC - De-multiplexer &mdash; Shaleen Jain">
+    <meta property="og:title" content="Fuzzing libVLC - De-multiplexer">
+
+
+    
+    
+
+
+    
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+        <link rel="manifest" href="/icons/manifest.json">
+        <link rel="mask-icon" href="/icons/safari-pinned-tab.svg">
+        <link rel="shortcut icon" href="/icons/favicon.ico">
+        <meta name="msapplication-config" content="/icons/browserconfig.xml">
+        <meta name="theme-color" content="#ffffff">
+    
+
+    
+
+    
+        <style>
+            /*! normalize.css v3.0.2 | MIT License | git.io/normalize */html{font-family:"sans-serif";-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary{display:block}audio,canvas,progress,video{display:inline-block;vertical-align:baseline}audio:not([controls]){display:none;height:0}[hidden],template{display:none}a{background-color:transparent}a:active,a:hover{outline:0}abbr[title]{border-bottom:1px dotted}b,strong{font-weight:bold}dfn{font-style:italic}h1{font-size:2em;margin:0.67em 0}mark{background:#ff0;color:#000}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sup{top:-0.5em}sub{bottom:-0.25em}img{border:0}svg:not(:root){overflow:hidden}figure{margin:0px}hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0}pre{overflow:auto}code,kbd,pre,samp{font-family:monospace, monospace;font-size:1em}button,input,optgroup,select,textarea{color:inherit;font:inherit;margin:0}button{overflow:visible}button,select{text-transform:none}button,html input[type="button"],input[type="reset"],input[type="submit"]{-webkit-appearance:button;cursor:pointer}button[disabled],html input[disabled]{cursor:default}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input{line-height:normal}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{height:auto}input[type="search"]{-webkit-appearance:textfield;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box}input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit-search-decoration{-webkit-appearance:none}fieldset{border:1px solid #c0c0c0;margin:0 2px;padding:0.35em 0.625em 0.75em}legend{border:0;padding:0}textarea{overflow:auto}optgroup{font-weight:bold}table{border-collapse:collapse;border-spacing:0}td,th{padding:0}html{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}*,*:before,*:after{box-sizing:inherit}.image-row{display:flex;flex-flow:row wrap;align-items:center;padding:0 4px}.image-column{flex:50%;max-width:50%;padding:0 4px;border-radius:8px;width:100%;height:auto}@media screen and (max-width: 42em){.image-column{flex:100%;max-width:100%}}.text-center{text-align:center}.text-right{text-align:right}.fa-social-icons{font-size:2rem;margin-top:-1rem}.fa-social-icons a{border:0;margin-right:0.1rem}.fa-social-icons a:last-child{margin-right:0}.masthead,.content,.footer{max-width:42em;margin-left:auto;margin-right:auto}.masthead:after,.post:after,.related:after,.recent:after,.page:after,.comments:after,.index:after{display:block;content:"";width:150px;height:1px;margin:2rem auto;background-color:#c4c4c4}.related .related-title,.related .recent-title,.recent .related-title,.recent .recent-title{margin-top:0}.masthead{margin-bottom:2rem;padding-top:1rem;text-align:right}.masthead a{color:#111}.masthead .masthead-title{margin:0;padding:0;float:left}.masthead .masthead-title a{text-decoration:none;border:0}.masthead .masthead-nav{display:inline-block;padding-left:0;margin-bottom:0}.masthead .masthead-nav a{text-decoration:none;border:0}.masthead .masthead-nav a+a{margin-left:0.6rem}.footer{margin-bottom:1rem;text-align:center}.footer a[rel="license"]:first-child{display:inline-block;margin:0;padding:0;border:0;text-decoration:none}.footer .icon-square{color:transparent}.footer .icon-square:hover{color:#252525}.footer .fa-stack-1x{color:black}.footer p>span{font-size:110%}.footer p>span a{padding:2px;border:0}.footer p>span i:hover{color:white}.footer p p:last-child{margin-bottom:0}.posts{padding-bottom:1rem}.posts .posts-item{margin-bottom:1rem}@media (min-width: 42em){.posts .posts-item{margin-bottom:0.2rem}}.posts a{border:0}.posts time{display:block;color:#848484}@media (min-width: 42em){.posts time{margin-top:2px;float:right}}.next,.previous{font-weight:600;font-size:20px;transition:transform 0.3s ease-out}.next{float:right}.next:hover{transform:translateX(4px)}.previous{float:left}.previous:hover{transform:translateX(-4px)}html,body{margin:0}html{font-family:"Lora","sans-serif";font-size:18px;line-height:1.6}@media (min-width: 42em){html{font-size:20px}}body{padding:2rem 1.5rem;color:#444;background-color:#fff;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}a{color:#afd700;text-decoration:none;border-bottom:1px solid #afd700}a:hover,a:focus{background-color:#afd700;color:white}a strong{color:inherit}img{display:block;max-width:100%;margin:0 0 1rem;border-radius:5px}table{margin-bottom:1rem;width:100%;font-size:85%;border:1px solid #c4c4c4;border-collapse:collapse}.js-file-line-container td{border:none}td,th{padding:.25rem .5rem;border:1px solid #c4c4c4}th{text-align:left}tbody tr:nth-child(even) td,tbody tr:nth-child(even) th{background-color:#fff}tbody tr:nth-child(odd) td,tbody tr:nth-child(odd) th{background-color:#fafafa}
+
+        </style>
+    
+
+    
+      <style>
+        /* latin */
+        @font-face {
+          font-family: 'Lora';
+          font-style: italic;
+          font-weight: 400;
+          font-display: swap;
+          src: url("/fonts/0QI8MX1D_JOuMw_hLdO6T2wV9KnW-MoFoq92nA.woff2") format('woff2');
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        /* latin */
+        @font-face {
+          font-family: 'Lora';
+          font-style: normal;
+          font-weight: 400;
+          font-display: swap;
+          src: url("/fonts/0QI6MX1D_JOuGQbT0gvTJPa787weuxJBkq0.woff2") format('woff2');
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        /* latin */
+        @font-face {
+          font-family: 'Lora';
+          font-style: normal;
+          font-weight: 700;
+          font-display: swap;
+          src: url("/fonts/0QI6MX1D_JOuGQbT0gvTJPa787z5vBJBkq0.woff2") format('woff2');
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+      </style>
+    
+  </head>
+
+  <body>
+    
+        <link rel="stylesheet" href="/style.css">
+    
+
+    
+        <header class="masthead">
+          <h3 class="masthead-title">
+            <a href="/">Shaleen Jain</a>
+          </h3>
+          <nav class="masthead-nav">
+            
+            <a href="&#x2F;blog" class="nav-item">Blog</a>
+            
+          </nav>
+        </header>
+    
+
+
+    <main class="content">
+        
+
+<article class="post">
+  <header class="post-header">
+    <time datetime="2017-06-24" class="post-date">
+        24 Jun 2017
+    </time>
+        
+        <small>
+            · 
+    <span class="reading-time" title="Estimated read time">
+      
+        6 min read
+      
+    </span>
+
+        </small>
+    <h1 class="post-title">Fuzzing libVLC - De-multiplexer</h1>
+  </header>
+
+  <p>So, I have been working on writing a fuzz target for the demux API for the past
+two weeks and I have reached a point where it has a good code coverage
+and has already found some few shallow bugs. </p>
+<p>Here are some of the stacktraces libfuzzer spit out and all of them were fixed
+rather promptly.</p>
+<span id="continue-reading"></span>
+<p>A Segfault on a null pointer, fixed by adding a <a rel="noopener nofollow noreferrer" target="_blank" href="https://github.com/videolan/vlc/commit/6c947b775d4d6c6ed07ebde140bddd3a2007b41a">null check</a></p>
+<pre style="background-color:#fdf6e3;">
+<code class="language-text" data-lang="text"><span style="color:#657b83;">==25241==ERROR: AddressSanitizer: SEGV on unknown address 0xffffffffffffff68 (pc 0x7f56c19e8ab0 bp 0xffffffffffffff58 sp 0x7ffcdfe59e58 T0)
+==25241==The signal is caused by a READ memory access.
+    #0 0x7f56c19e8aaf  (/usr/lib/libpthread.so.0+0x9aaf)
+    #1 0x7f56c275c5e1 in Lookup misc/variables.c:158
+    #2 0x7f56c275c5e1 in AddCallback misc/variables.c:839
+    #3 0x7f56c275c5e1 in var_AddCallback misc/variables.c:884
+    #4 0x7f56b336a55e in blurayOpen access/bluray.c:674
+    #5 0x7f56c26df59d in module_load modules/modules.c:183
+    #6 0x7f56c26dfb43 in vlc_module_load modules/modules.c:275
+    #7 0x7f56c2704dec in demux_NewAdvanced input/demux.c:259
+    #8 0x7f56c2705236 in demux_New input/demux.c:151
+    #9 0x40575b in LLVMFuzzerTestOneInput /home/shalzz/builds/vlc/test/fuzz/libvlc_demux_fuzzer.cpp:73
+    #10 0x416714 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) FuzzerLoop.cpp:458
+    #11 0x416983 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) FuzzerLoop.cpp:397
+    #12 0x41714d in fuzzer::Fuzzer::MutateAndTestOne() FuzzerLoop.cpp:596
+    #13 0x417397 in fuzzer::Fuzzer::Loop() FuzzerLoop.cpp:624
+    #14 0x410438 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) FuzzerDriver.cpp:744
+    #15 0x405c40 in main FuzzerMain.cpp:20
+    #16 0x7f56c0089439 in __libc_start_main (/usr/lib/libc.so.6+0x20439)
+    #17 0x404ee9 in _start (/home/shalzz/builds/vlc/test/fuzz/.libs/lt-libvlc_demux_fuzzer+0x404ee9)
+</span></code></pre>
+<p>Abort due to character conversion without a conversion descriptor, <a rel="noopener nofollow noreferrer" target="_blank" href="https://github.com/videolan/vlc/commit/a672ea060efbb5898e1d80327f5909a43e8b57d8">fixed</a>.</p>
+<pre style="background-color:#fdf6e3;">
+<code class="language-text" data-lang="text"><span style="color:#657b83;">==32703== ERROR: libFuzzer: deadly signal
+    #0 0x7f46cd57fb68 in __sanitizer_print_stack_trace /build/gcc-multilib/src/gcc/libsanitizer/asan/asan_stack.cc:36
+    #1 0x468961 in fuzzer::Fuzzer::CrashCallback() FuzzerLoop.cpp:195
+    #2 0x46892d in fuzzer::Fuzzer::StaticCrashSignalCallback() FuzzerLoop.cpp:179
+    #3 0x7f46cc83993f  (/usr/lib/libpthread.so.0+0x1193f)
+    #4 0x7f46cbf8d66f in raise (/usr/lib/libc.so.6+0x3366f)
+    #5 0x7f46cbf8ecff in __GI_abort (/usr/lib/libc.so.6+0x34cff)
+    #6 0x7f46cce9996f in vlc_iconv extras/libc.c:391
+    #7 0x7f46ccf3e083 in vlc_stream_ReadLine input/stream.c:321
+    #8 0x7f4690b96342 in peek_Readline demux/subtitle_helper.h:38
+    #9 0x7f4690b96b02 in Open demux/vobsub.c:128
+    #10 0x7f46cce9b2dc in generic_start modules/modules.c:356
+    #11 0x7f46cce9a508 in module_load modules/modules.c:183
+    #12 0x7f46cce9abd6 in vlc_module_load modules/modules.c:279
+    #13 0x7f46cce9b42d in module_need modules/modules.c:371
+    #14 0x7f46cceef2bd in demux_NewAdvanced input/demux.c:259
+    #15 0x7f46cceeeadd in demux_New input/demux.c:151
+    #16 0x458a46 in LLVMFuzzerTestOneInput (/home/shalzz/builds/vlc-clean/test/fuzz/libvlc_demux_fuzzer+0x458a46)
+    #17 0x469754 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) FuzzerLoop.cpp:458
+    #18 0x4699c3 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) FuzzerLoop.cpp:397
+    #19 0x45f421 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) FuzzerDriver.cpp:268
+    #20 0x463034 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) FuzzerDriver.cpp:683
+    #21 0x458c80 in main FuzzerMain.cpp:20
+    #22 0x7f46cbf7a439 in __libc_start_main (/usr/lib/libc.so.6+0x20439)
+    #23 0x458239 in _start (/home/shalzz/builds/vlc-clean/test/fuzz/libvlc_demux_fuzzer+0x458239)
+</span></code></pre>
+<p>A heap-use-after-free, fixed by <a rel="noopener nofollow noreferrer" target="_blank" href="https://github.com/videolan/vlc/commit/b2fb79e3201c5ce77a176b52936835ce195aa986">this</a> and <a rel="noopener nofollow noreferrer" target="_blank" href="https://github.com/videolan/vlc/commit/1de4047a25cd336d1539ea0867c29180928dd230">this</a>.</p>
+<pre style="background-color:#fdf6e3;">
+<code class="language-text" data-lang="text"><span style="color:#657b83;">==26135==ERROR: AddressSanitizer: heap-use-after-free on address 0x613000005a00 at pc 0x7f4549af4c64 bp 0x7ffcb951f110 sp 0x7ffcb951e8b8
+    READ of size 4 at 0x613000005a00 thread T0
+        #0 0x7f4549af4c63 in __interceptor_memcmp /build/gcc-multilib/src/gcc/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:626
+        #1 0x7f453871981c in Open demux/image.c:640
+        #2 0x7f4548ffdb26 in generic_start modules/modules.c:356
+        #3 0x7f4548ffca56 in module_load modules/modules.c:183
+        #4 0x7f4548ffd2e5 in vlc_module_load modules/modules.c:279
+        #5 0x7f4548ffdc77 in module_need modules/modules.c:371
+        #6 0x7f4549076c84 in demux_NewAdvanced input/demux.c:259
+        #7 0x7f4549075fc2 in demux_New input/demux.c:151
+        #8 0x405ce5 in LLVMFuzzerTestOneInput /home/shalzz/builds/vlc/test/fuzz/libvlc_demux_fuzzer.cpp:68
+        #9 0x4169d4 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) FuzzerLoop.cpp:458
+        #10 0x416c43 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) FuzzerLoop.cpp:397
+        #11 0x41740d in fuzzer::Fuzzer::MutateAndTestOne() FuzzerLoop.cpp:596
+        #12 0x417657 in fuzzer::Fuzzer::Loop() FuzzerLoop.cpp:624
+        #13 0x4106f8 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) FuzzerDriver.cpp:744
+        #14 0x405f00 in main FuzzerMain.cpp:20
+        #15 0x7f45464b0439 in __libc_start_main (/usr/lib/libc.so.6+0x20439)
+        #16 0x404e49 in _start (/home/shalzz/builds/vlc/test/fuzz/.libs/lt-libvlc_demux_fuzzer+0x404e49)
+     
+    0x613000005a00 is located 128 bytes inside of 380-byte region [0x613000005980,0x613000005afc)
+    freed by thread T0 here:
+        #0 0x7f4549b234c8 in __interceptor_free /build/gcc-multilib/src/gcc/libsanitizer/asan/asan_malloc_linux.cc:45
+        #1 0x7f4549193fc7 in block_generic_Release misc/block.c:99
+        #2 0x7f4549193a3c in block_Release ../include/vlc_block.h:184
+        #3 0x7f4549194de2 in block_TryRealloc misc/block.c:212
+        #4 0x7f45490e89bb in vlc_stream_Peek input/stream.c:506
+        #5 0x7f4538717037 in IsPnm demux/image.c:354
+        #6 0x7f45387195bd in Open demux/image.c:634
+        #7 0x7f4548ffdb26 in generic_start modules/modules.c:356
+        #8 0x7f4548ffca56 in module_load modules/modules.c:183
+        #9 0x7f4548ffd2e5 in vlc_module_load modules/modules.c:279
+        #10 0x7f4548ffdc77 in module_need modules/modules.c:371
+        #11 0x7f4549076c84 in demux_NewAdvanced input/demux.c:259
+        #12 0x7f4549075fc2 in demux_New input/demux.c:151
+        #13 0x405ce5 in LLVMFuzzerTestOneInput /home/shalzz/builds/vlc/test/fuzz/libvlc_demux_fuzzer.cpp:68
+        #14 0x4169d4 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) FuzzerLoop.cpp:458
+        #15 0x416c43 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) FuzzerLoop.cpp:397
+        #16 0x41740d in fuzzer::Fuzzer::MutateAndTestOne() FuzzerLoop.cpp:596
+        #17 0x417657 in fuzzer::Fuzzer::Loop() FuzzerLoop.cpp:624
+        #18 0x4106f8 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) FuzzerDriver.cpp:744
+        #19 0x405f00 in main FuzzerMain.cpp:20
+        #20 0x7f45464b0439 in __libc_start_main (/usr/lib/libc.so.6+0x20439)
+     
+    previously allocated by thread T0 here:
+        #0 0x7f4549b23860 in __interceptor_malloc /build/gcc-multilib/src/gcc/libsanitizer/asan/asan_malloc_linux.cc:62
+        #1 0x7f4549194434 in block_Alloc misc/block.c:128
+        #2 0x7f4549194c77 in block_TryRealloc misc/block.c:205
+        #3 0x7f45490e89bb in vlc_stream_Peek input/stream.c:506
+        #4 0x7f4539fc5e24 in DetectPVRHeadersAndHeaderSize demux/mpeg/ts.c:256
+        #5 0x7f4539fc6272 in Open demux/mpeg/ts.c:357
+        #6 0x7f4548ffdb26 in generic_start modules/modules.c:356
+        #7 0x7f4548ffca56 in module_load modules/modules.c:183
+        #8 0x7f4548ffd2e5 in vlc_module_load modules/modules.c:279
+        #9 0x7f4548ffdc77 in module_need modules/modules.c:371
+        #10 0x7f4549076c84 in demux_NewAdvanced input/demux.c:259
+        #11 0x7f4549075fc2 in demux_New input/demux.c:151
+        #12 0x405ce5 in LLVMFuzzerTestOneInput /home/shalzz/builds/vlc/test/fuzz/libvlc_demux_fuzzer.cpp:68
+        #13 0x4169d4 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) FuzzerLoop.cpp:458
+        #14 0x416c43 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long) FuzzerLoop.cpp:397
+        #15 0x41740d in fuzzer::Fuzzer::MutateAndTestOne() FuzzerLoop.cpp:596
+        #16 0x417657 in fuzzer::Fuzzer::Loop() FuzzerLoop.cpp:624
+        #17 0x4106f8 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) FuzzerDriver.cpp:744
+        #18 0x405f00 in main FuzzerMain.cpp:20
+        #19 0x7f45464b0439 in __libc_start_main (/usr/lib/libc.so.6+0x20439)
+     
+    SUMMARY: AddressSanitizer: heap-use-after-free /build/gcc-multilib/src/gcc/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:626 in __interceptor_memcmp
+    Shadow bytes around the buggy address:
+      0x0c267fff8af0: fa fa fa fa fa fa fa fa 00 00 00 00 00 00 00 00
+      0x0c267fff8b00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+      0x0c267fff8b10: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+      0x0c267fff8b20: 00 00 00 00 00 fa fa fa fa fa fa fa fa fa fa fa
+      0x0c267fff8b30: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+    =&gt;0x0c267fff8b40:[fd]fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+      0x0c267fff8b50: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+      0x0c267fff8b60: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+      0x0c267fff8b70: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+      0x0c267fff8b80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+      0x0c267fff8b90: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+    Shadow byte legend (one shadow byte represents 8 application bytes):
+      Addressable:           00
+      Partially addressable: 01 02 03 04 05 06 07
+      Heap left redzone:       fa
+      Freed heap region:       fd
+      Stack left redzone:      f1
+      Stack mid redzone:       f2
+      Stack right redzone:     f3
+      Stack after return:      f5
+      Stack use after scope:   f8
+      Global redzone:          f9
+      Global init order:       f6
+      Poisoned by user:        f7
+      Container overflow:      fc
+      Array cookie:            ac
+      Intra object redzone:    bb
+      ASan internal:           fe
+      Left alloca redzone:     ca
+      Right alloca redzone:    cb
+    ==26135==ABORTING
+</span></code></pre>
+<p>Unfortunately I cannot publish my source code yet or start integrating with oss-fuzz and cluster fuzz
+by Google as VideoLAN/Labs is still undecided and would rather do this privately, mostly because they
+don’t want to be bound by Google’s <a rel="noopener nofollow noreferrer" target="_blank" href="https://googleprojectzero.blogspot.in/2015/02/feedback-and-data-driven-updates-to.html">bug disclosure</a> policy.</p>
+<p><del>I think they are just confused that they have to do a software release within the specified
+deadline when it’s just a bug disclosure, but whatever.</del>
+(There’s no longer any confusion.)</p>
+<blockquote>
+<p>Update: You can find all my bug fixes and patches <a rel="noopener nofollow noreferrer" target="_blank" href="https://github.com/videolan/vlc/commits/master?author=Shalzz">here</a></p>
+</blockquote>
+
+</article>
+
+
+<h3>Subscribe to my Newsletter</h3>
+<div>
+  Liked this article? Share this article with others and subscribe to my newsletter
+  to know about the next cool thing I'm working on or launching.
+</div>
+<br/>
+
+<!-- Begin Mailchimp Signup Form -->
+<link href="//cdn-images.mailchimp.com/embedcode/classic-10_7.css" rel="stylesheet" type="text/css">
+<style type="text/css">
+	#mc_embed_signup{background:#fff; clear:left; font:14px Helvetica,Arial,sans-serif; }
+	/* MailChimp Form Embed Code - Classic - 12/17/2015 v10.7 */
+	#mc_embed_signup form {display:block; position:relative; text-align:left; padding:0 0 3% 0;}
+	#mc_embed_signup h2 {font-weight:bold; padding:0; margin:15px 0; font-size:1.4em;}
+	#mc_embed_signup input {border: 1px solid #ABB0B2; -webkit-border-radius: 3px; -moz-border-radius: 3px; border-radius: 3px;}
+	#mc_embed_signup input[type=checkbox]{-webkit-appearance:checkbox;}
+	#mc_embed_signup input[type=radio]{-webkit-appearance:radio;}
+	#mc_embed_signup input:focus {border-color:#333;}
+	#mc_embed_signup .button {clear:both; background-color: #aaa; border: 0 none; border-radius:4px; transition: all 0.23s ease-in-out 0s; color: #FFFFFF; cursor: pointer; display: inline-block; font-size:15px; font-weight: normal; height: 32px; line-height: 32px; margin: 0 5px 10px 0; padding: 0 22px; text-align: center; text-decoration: none; vertical-align: top; white-space: nowrap; width: auto;}
+	#mc_embed_signup .button:hover {background-color:#777;}
+	#mc_embed_signup .small-meta {font-size: 11px;}
+	#mc_embed_signup .nowrap {white-space:nowrap;}
+
+	#mc_embed_signup .mc-field-group {clear:left; position:relative; width:96%; padding: 0.5%; min-height:50px;}
+	#mc_embed_signup .size1of2 {clear:none; float:left; display:inline-block; width:46%; margin-right:4%;}
+	* html #mc_embed_signup .size1of2 {margin-right:2%; /* Fix for IE6 double margins. */}
+	#mc_embed_signup .mc-field-group label {display:block; margin-bottom:3px;}
+	#mc_embed_signup .mc-field-group input {display:inline; width:100%; padding:8px 0; text-indent:2%;}
+	#mc_embed_signup .mc-field-group select {display:inline-block; width:99%; padding:5px 0; margin-bottom:2px;}
+
+	#mc_embed_signup .datefield, #mc_embed_signup .phonefield-us{padding:5px 0;}
+	#mc_embed_signup .datefield input, #mc_embed_signup .phonefield-us input{display:inline; width:60px; margin:0 2px; letter-spacing:1px; text-align:center; padding:5px 0 2px 0;}
+	#mc_embed_signup .phonefield-us .phonearea input, #mc_embed_signup .phonefield-us .phonedetail1 input{width:40px;}
+	#mc_embed_signup .datefield .monthfield input, #mc_embed_signup .datefield .dayfield input{width:30px;}
+	#mc_embed_signup .datefield label, #mc_embed_signup .phonefield-us label{display:none;}
+
+	#mc_embed_signup .asterisk {color:#e85c41; font-size:150%; font-weight:normal; position:relative; top:5px;}     
+	#mc_embed_signup .mce-submit {padding: 0.5%;}
+	#mc_embed_signup_scroll {display: flex; justify-items; space-around;}
+
+	#mc_embed_signup .mc-field-group.input-group ul {margin:0; padding:5px 0; list-style:none;}
+	#mc_embed_signup .mc-field-group.input-group ul li {display:block; padding:3px 0; margin:0;}
+	#mc_embed_signup .mc-field-group.input-group label {display:inline;}
+	#mc_embed_signup .mc-field-group.input-group input {display:inline; width:auto; border:none;}
+
+	#mc_embed_signup div#mce-responses {clear: both;}
+	#mc_embed_signup div.response {margin:1em 0; padding:1em .5em .5em 0; font-weight:bold; float:left; top:-1.5em; z-index:1; width:80%;}
+	#mc_embed_signup #mce-error-response {display:none;}
+	#mc_embed_signup #mce-success-response {color:#529214; display:none;}
+	#mc_embed_signup label.error {display:block; float:none; width:auto; margin-left:1.05em; text-align:left; padding:.5em 0;}
+
+	#mc-embedded-subscribe {clear:both; width:auto; display:block; margin:1em 0 1em 5%;}
+	#mc_embed_signup #num-subscribers {font-size:1.1em;}
+	#mc_embed_signup #num-subscribers span {padding:.5em; border:1px solid #ccc; margin-right:.5em; font-weight:bold;}
+
+	#mc_embed_signup #mc-embedded-subscribe-form div.mce_inline_error {display:inline-block; margin:2px 0 1em 0; padding:5px 10px; background-color:rgba(255,255,255,0.85); -webkit-border-radius: 3px; -moz-border-radius: 3px; border-radius: 3px; font-size:14px; font-weight:normal; z-index:1; color:#e85c41;}
+	#mc_embed_signup #mc-embedded-subscribe-form input.mce_inline_error {border:2px solid #e85c41;}
+	/* Add your own Mailchimp form style overrides in your site stylesheet or in this style block.
+	   We recommend moving this block and the preceding CSS link to the HEAD of your HTML file. */
+</style>
+<div id="mc_embed_signup">
+<form action="https://shaleenjain.us1.list-manage.com/subscribe/post?u=1eaa5ecf0b59e6a364a3c9c1a&amp;id=dbd95a64e5" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+    <div id="mc_embed_signup_scroll">
+	<div class="mc-field-group">
+		<input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+	</div>
+	<!-- real people should not fill this in and expect good things - do not remove this or risk form bot signups-->
+    	<div style="position: absolute; left: -5000px;" aria-hidden="true">
+		<input type="text" name="b_1eaa5ecf0b59e6a364a3c9c1a_dbd95a64e5" tabindex="-1" value="">
+	</div>
+	<div class="mce-submit">
+		<input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button">
+	</div>
+    </div>
+	<div id="mce-responses">
+		<div class="response" id="mce-error-response"></div>
+		<div class="response" id="mce-success-response"></div>
+	</div>
+</form>
+</div>
+<script type='text/javascript' src='//s3.amazonaws.com/downloads.mailchimp.com/js/mc-validate.js'></script><script type='text/javascript'>(function($) {window.fnames = new Array(); window.ftypes = new Array();fnames[0]='EMAIL';ftypes[0]='email';fnames[1]='FNAME';ftypes[1]='text';fnames[2]='LNAME';ftypes[2]='text';fnames[3]='ADDRESS';ftypes[3]='address';fnames[4]='PHONE';ftypes[4]='phone';fnames[5]='BIRTHDAY';ftypes[5]='birthday';}(jQuery));var $mcj = jQuery.noConflict(true);</script>
+<!--End mc_embed_signup-->
+
+
+
+
+  <p>Got any questions or comments? Drop me a message on <a href="https:&#x2F;&#x2F;twitter.com&#x2F;shalzzj" rel="nofollow">Twitter @shalzzj</a></p>
+
+
+
+
+
+    </main>
+
+    
+        <footer class="footer">
+          <p><small>
+            This work is licensed under the <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">
+            CC BY-SA 4.0</a> license.
+          <br/>
+          <a href="/atom.xml">RSS Feed</a> •
+          <a href="/subscribe">Subscribe</a>!
+          </small></p>
+        </footer>
+    
+
+    
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "95f9368e22cc4457b759a170492a2fd0"}'></script>
+
+
+  </body>
+</html>
